@@ -1,10 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PhysicsTank : MonoBehaviour
 {
     [Header("Tank Settings")]
+    public bool isPlayerControlled = false;
     [Tooltip("Top speed of the tank in km/h.")]
     public float topSpeed = 76.0f;
     [Tooltip("For tanks with front/rear wheels defined, this is how far those wheels turn.")]
@@ -43,6 +45,10 @@ public class PhysicsTank : MonoBehaviour
     private Vector2 rightTextureOffset = Vector2.zero;
     public float textureSpeedMultiplier = 1f;
     public float textureRotationMultiplier = 0.5f;
+    [Header("Ui Debug")]
+    public bool showUiDebug = false;
+    public TextMeshProUGUI speedText;
+    // public Text speedText;
 
     private Rigidbody rigid;
     private float forwardInput, turnInput = 0.0f;
@@ -77,8 +83,17 @@ public class PhysicsTank : MonoBehaviour
 
     private void Update()
     {
-        forwardInput = Input.GetAxis("Vertical");
-        turnInput = Input.GetAxis("Horizontal");
+        if (isPlayerControlled)
+        {
+            forwardInput = Input.GetAxis("Vertical");
+            turnInput = Input.GetAxis("Horizontal");
+        }
+
+        if (showUiDebug)
+        {
+            float speed = rigid.velocity.magnitude * 3.6f;
+            speedText.text = "Speed: " + speed.ToString("F2") + " km/h";
+        }
     }
 
     private void FixedUpdate()
@@ -90,22 +105,15 @@ public class PhysicsTank : MonoBehaviour
         if (leftTracksRenderer && rightTracksRenderer != null)
             UpdateTextureOffset();
     }
-
-    /// <summary>
-    /// POWERED WHEELS
-    /// Sets the motor torque of the wheel based on forward input. This moves
-    /// the tank forwards and backwards. 
-    /// </summary>
     private void RunPoweredWheels()
     {
         foreach (WheelCollider wheel in poweredWheels)
         {
+
             if (rigid.velocity.magnitude <= topSpeed / 3.6f)
                 wheel.motorTorque = forwardInput * motorTorque;
             else
                 wheel.motorTorque = 0.0f;
-
-            // Apply brake force if no input is detected
             if (Mathf.Abs(forwardInput) < 0.1f && Mathf.Abs(turnInput) < 0.1f)
             {
                 wheel.brakeTorque = brakeForce;
@@ -125,16 +133,6 @@ public class PhysicsTank : MonoBehaviour
             }
         }
     }
-
-    /// <summary>
-    /// DIFFERENTIAL STEERING
-    /// When turning, the left/right wheel colliders will apply an extra
-    /// torque in opposing directions and rotate the tank.
-    /// 
-    /// Note: Wheel sideways friction can easily prevent the tank from
-    /// rotating when this is done. Lowering side friction for wheels that
-    /// don't need it (i.e., wheels away from the center) can mitigate this.
-    /// </summary>
     private void RunDifferentialSteeringWheels()
     {
         foreach (WheelCollider wheel in left)
@@ -142,16 +140,6 @@ public class PhysicsTank : MonoBehaviour
         foreach (WheelCollider wheel in right)
             wheel.motorTorque -= motorTorque * turnInput;
     }
-
-    /// <summary>
-    /// FOUR WHEEL STEERING
-    /// Wheels assigned as front and rear wheels rotate to turn the tank.
-    /// This works great in motion, but will not turn the tank when standing
-    /// still. 
-    /// 
-    /// Note: If only one set of wheels is filled out, only that set will
-    /// rotate.
-    /// </summary>
     private float currentSteeringAngle = 0.0f;
     private void RunFourWheelSteeringWheels()
     {
@@ -166,29 +154,11 @@ public class PhysicsTank : MonoBehaviour
             foreach (WheelCollider wheel in rear)
                 wheel.steerAngle = -currentSteeringAngle;
     }
-
-    /// <summary>
-    /// MAGIC ROTATION
-    /// Simply rotates the Rigidbody itself using a predefined rotation rate
-    /// and turning input. This has no connection to physics in any way, but
-    /// is very controllable and predictable.
-    /// 
-    /// Note: Since there is no connection to the physics, the tank could
-    /// turn even if it wasn't on the ground. A simple way to counter this
-    /// would be to check how many wheels are on the ground and then reduce
-    /// the turning speed depending on how many are touching the ground.
-    /// </summary>
     private void RunMagicRotation()
     {
         Quaternion magicRotation = transform.rotation * Quaternion.AngleAxis(magicTurnRate * turnInput * Time.deltaTime, transform.up);
         rigid.MoveRotation(magicRotation);
     }
-
-    /// <summary>
-    /// Instantiates wheel model prefabs on each of the wheels and moves
-    /// them to match the physics wheels.
-    /// </summary>
-    /// <param name="wheels"></param>
     private void InstantiateWheelModelsFromPrefab(WheelCollider[] wheels)
     {
         foreach (WheelCollider wheel in wheels)
