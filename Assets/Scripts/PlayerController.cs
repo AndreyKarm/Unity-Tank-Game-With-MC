@@ -25,14 +25,15 @@ public class PlayerController : MonoBehaviour
         Commander,
         Loader
     }
-
-
+    public TankPosition tankPosition;
     [HideInInspector]
     public bool canMove = true;
 
     void Start()
     {
         characterController = GetComponent<CharacterController>();
+
+        tankPosition = TankPosition.Infantry;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -67,6 +68,13 @@ public class PlayerController : MonoBehaviour
             rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
             playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
             transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
+        }
+
+        RaycastHit hit;
+        if (Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out hit, 100))
+        {
+            Debug.Log($"Found an object: {hit.collider.gameObject.name} - distance: {hit.distance}");
+            Debug.DrawLine(playerCamera.transform.position, hit.point, Color.red);
         }
     }
 }

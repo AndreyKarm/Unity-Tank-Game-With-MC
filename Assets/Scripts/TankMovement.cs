@@ -6,7 +6,7 @@ using TMPro;
 public class PhysicsTank : MonoBehaviour
 {
     [Header("Tank Settings")]
-    public bool isPlayerControlled = false;
+    public Camera tankCamera;
     [Tooltip("Top speed of the tank in km/h.")]
     public float topSpeed = 76.0f;
     [Tooltip("For tanks with front/rear wheels defined, this is how far those wheels turn.")]
@@ -48,7 +48,6 @@ public class PhysicsTank : MonoBehaviour
     [Header("Ui Debug")]
     public bool showUiDebug = false;
     public TextMeshProUGUI speedText;
-    // public Text speedText;
 
     private Rigidbody rigid;
     private float forwardInput, turnInput = 0.0f;
@@ -56,6 +55,7 @@ public class PhysicsTank : MonoBehaviour
 
     private void Awake()
     {
+        tankCamera.enabled = false;
         rigid = GetComponent<Rigidbody>();
         WheelToTransformMap = new Dictionary<WheelCollider, Transform>(poweredWheels.Length);
     }
@@ -83,11 +83,8 @@ public class PhysicsTank : MonoBehaviour
 
     private void Update()
     {
-        if (isPlayerControlled)
-        {
-            forwardInput = Input.GetAxis("Vertical");
-            turnInput = Input.GetAxis("Horizontal");
-        }
+        forwardInput = Input.GetAxis("Vertical");
+        turnInput = Input.GetAxis("Horizontal");
 
         if (showUiDebug)
         {
